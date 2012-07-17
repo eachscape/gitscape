@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Jon Botelho"]
   s.email	= ["gitscape@eachscape.com"]
-  s.homepage	= ""
+  s.homepage	= "https://github.com/jon-eachscape/gitscape"
   s.summary     = "Various Git utilities for cherry-pick/rebase workflows."
   s.description = "Various Git utilities for cherry-pick/rebase workflows."
 

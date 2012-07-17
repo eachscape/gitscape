@@ -7,5 +7,13 @@ rescue LoadError
   require 'gitscape'
 end
 
-
-GitScape.branch_diff(ARGV[1], ARGV[2])
+if ARGV.size < 2
+  puts "Examples: "
+  puts "\tgitscape diff master staging"
+  puts "\tgitscape deploy_iteration i22"
+  exit(1)
+elsif ARGV[0] == "diff"
+  GitScape.compare(ARGV[1], ARGV[2])
+elsif ARGV[0] == "deploy_iteration"
+  GitScape.deploy_iteration(ARGV[1])
+end
