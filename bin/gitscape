@@ -14,6 +14,8 @@ if ARGV.size < 2
   exit(1)
 elsif ARGV[0] == "diff"
   GitScape.compare(ARGV[1], ARGV[2])
+elsif ARGV[0] == "start_iteration"
+  GitScape.start_iteration(ARGV[1])
 elsif ARGV[0] == "deploy_iteration"
   GitScape.deploy_iteration(ARGV[1])
 end
