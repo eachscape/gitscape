@@ -12,6 +12,13 @@ if ARGV.size < 2
   puts "\tgitscape diff master staging"
   puts "\tgitscape deploy_iteration i22"
   exit(1)
+else
+  case ARGV[0]
+    when "hotfix_start"
+      GitScape.new.hotfix_start
+    when "hotfix_finish"
+      GitScape.new.hotfix_finish
+  end
 elsif ARGV[0] == "diff"
   GitScape.compare(ARGV[1], ARGV[2])
 elsif ARGV[0] == "start_iteration"

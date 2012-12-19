@@ -5,13 +5,15 @@ require "gitscape/version"
 
 Gem::Specification.new do |s|
   s.name        = "gitscape"
-  s.version     = GitScape::VERSION
+  s.version     = Gitscape::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Jon Botelho"]
   s.email	= ["gitscape@eachscape.com"]
-  s.homepage	= "https://github.com/jon-eachscape/gitscape"
+  s.homepage	= "https://github.com/eachscape/gitscape"
   s.summary     = "Various Git utilities for cherry-pick/rebase workflows."
   s.description = "Various Git utilities for cherry-pick/rebase workflows."
+
+  s.add_dependency "git", "~> 1.2.5"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
