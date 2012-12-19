@@ -8,9 +8,7 @@ rescue LoadError
 end
 
 if ARGV.size < 2
-  puts "Examples: "
-  puts "\tgitscape diff master staging"
-  puts "\tgitscape deploy_iteration i22"
+  puts "TODO: write usage help text"
   exit(1)
 else
   case ARGV[0]
@@ -18,11 +16,7 @@ else
       GitScape.new.hotfix_start
     when "hotfix_finish"
       GitScape.new.hotfix_finish
+    else
+      puts "Unknown command"
   end
-elsif ARGV[0] == "diff"
-  GitScape.compare(ARGV[1], ARGV[2])
-elsif ARGV[0] == "start_iteration"
-  GitScape.start_iteration(ARGV[1])
-elsif ARGV[0] == "deploy_iteration"
-  GitScape.deploy_iteration(ARGV[1])
 end
