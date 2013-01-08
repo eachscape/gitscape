@@ -7,15 +7,18 @@ rescue LoadError
   require 'gitscape'
 end
 
-if ARGV.size < 2
+if ARGV.size < 1
+  puts "*** Improper Usage ***"
   puts "TODO: write usage help text"
   exit(1)
 else
   case ARGV[0]
     when "hotfix_start"
-      GitScape.new.hotfix_start
+      Gitscape::Base.new.hotfix_start ARGV[1]
     when "hotfix_finish"
-      GitScape.new.hotfix_finish
+      Gitscape::Base.new.hotfix_finish ARGV[1]
+    when "release_finish"
+      Gitscape::Base.new.release_finish ARGV[1].to_i
     else
       puts "Unknown command"
   end
