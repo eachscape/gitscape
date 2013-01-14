@@ -57,14 +57,14 @@ class Gitscape::Base
     live_current_version_number
   end
 
-    def git_has_conflicts puts_conflicts=true
-      conflicts_status = `git status --porcelain | grep UU`
-      has_conflicts = conflicts_status.length > 0
+  def git_has_conflicts puts_conflicts=true
+    conflicts_status = `git status --porcelain | grep UU`
+    has_conflicts = conflicts_status.length > 0
 
-      puts conflicts_status if has_conflicts && puts_conflicts
+    puts conflicts_status if has_conflicts && puts_conflicts
 
-      has_conflicts
-    end
+    has_conflicts
+  end
 
   def hotfix_start(hotfix_branch_name=nil)
     checkout "live"
@@ -76,7 +76,10 @@ class Gitscape::Base
 
     hotfix_branch_name = "hotfix/#{hotfix_branch_name}"
     puts "Creating hotfix branch '#{hotfix_branch_name}'..."
-    @repo.checkout(@repo.branch(hotfix_branch_name).create)
+
+    hotfix_branch = @repo.branch(hotfix_branch_name)
+    `git checkout -b #{hotfix_branch.full}`
+    @repo.checkout(hotfix_branch)
   end
 
   def hotfix_finish(hotfix_branch_name=nil)
@@ -97,6 +100,7 @@ class Gitscape::Base
     end
 
     merge_master = true
+    master_branch = @repo.branch "master"
 
     if hotfix_branch_name.empty?
       puts "!!! not currently on a hotfix branch, and no branch name was provided as an argument !!!"
@@ -106,11 +110,12 @@ class Gitscape::Base
 
     hotfix_branch = @repo.branch hotfix_branch_name
     development_branch = @repo.branches.select {|branch| branch.full.start_with? "release/"}.sort.last
-    development_branch = @repo.branch "master" if development_branch == nil
+    development_branch = master_branch if development_branch == nil
     live_branch = @repo.branch "live"
 
     # Collect the set of branches we'd like to merge the hotfix into
     merge_branches = [development_branch, live_branch]
+    merge_branches.insert master_branch if !(merge_branches.include? master_branch) && merge_master
 
     # Merge the hotfix into branches
     for branch in merge_branches
@@ -125,6 +130,42 @@ class Gitscape::Base
 
     # Checkout previous branch for user convenience
     `git checkout #{previous_branch}`
+  end
+
+  def release_start
+    # Switch to master branch
+    # puts"About to checkout master"
+    `git checkout master`
+    # puts"Checkout of master branch successful"
+
+    # Check that the working copy is clean
+    exit 1 unless git_working_copy_is_clean
+
+    # Figure out the previous and new version numbers
+    version_file = File.new("version", "r")
+    previous_version_number = version_file.read.delete("i").to_i
+    new_version_number = previous_version_number + 1
+
+    # Get the new release_branch_name
+    release_branch_name = "i#{new_version_number}"
+
+    # Cut the branch
+    `git checkout -b "release/#{release_branch_name}" master`
+    exit 1 unless $?.exitstatus == 0
+
+    # Bump the version number
+    `echo "#{release_branch_name}" > ./version`
+    exit 1 unless $?.exitstatus == 0
+
+    # Commit the bump
+    `git commit -a -m "Begin #{release_branch_name} release candidate"`
+    exit 1 unless $?.exitstatus == 0
+
+    # Push to origin
+    `git push origin -u "release/#{release_branch_name}"`
+    exit 1 unless $?.exitstatus == 0
+    `git push origin "release/#{release_branch_name}:qa"`
+    exit 1 unless $?.exitstatus == 0
   end
 
   def release_finish new_version_number=0

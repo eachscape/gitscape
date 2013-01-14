@@ -17,6 +17,8 @@ else
       Gitscape::Base.new.hotfix_start ARGV[1]
     when "hotfix_finish"
       Gitscape::Base.new.hotfix_finish ARGV[1]
+    when "release_start"
+      Gitscape::Base.new.release_start
     when "release_finish"
       Gitscape::Base.new.release_finish ARGV[1].to_i
     else
