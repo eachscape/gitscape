@@ -102,7 +102,7 @@ class Gitscape::Base
     merge_master = true
     master_branch = @repo.branch "master"
 
-    if hotfix_branch_name.empty?
+    if hotfix_branch_name.to_s.empty?
       puts "!!! not currently on a hotfix branch, and no branch name was provided as an argument !!!"
       puts usage_string
       exit 1
@@ -115,7 +115,7 @@ class Gitscape::Base
 
     # Collect the set of branches we'd like to merge the hotfix into
     merge_branches = [development_branch, live_branch]
-    merge_branches.insert master_branch if !(merge_branches.include? master_branch) && merge_master
+    merge_branches << master_branch if !(merge_branches.include? master_branch) && merge_master
 
     # Merge the hotfix into branches
     for branch in merge_branches
