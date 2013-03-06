@@ -109,7 +109,8 @@ class Gitscape::Base
     end
 
     hotfix_branch = @repo.branch hotfix_branch_name
-    development_branch = @repo.branches.select {|branch| branch.full.start_with? "release/"}.sort.last
+    # TODO The next line breaks at iteration 100
+    development_branch = @repo.branches.select {|branch| branch.full.start_with? "release/"}.sort{|a, b| a.name <=> b.name}.last
     development_branch = master_branch if development_branch == nil
     live_branch = @repo.branch "live"
 
@@ -305,9 +306,10 @@ class Gitscape::Base
     raise "Git version string must have 4 parts" if min_version.size != 4
 
     4.times do |i|
-      return false unless local_version[i] >= min_version[i]
+      next if local_version[i] == min_version[i]
+      return local_version[i] > min_version[i]
     end
-    true
+    true # If you get all the way here, all 4 positions match precisely
   end
 
   def self.result_ok?(result)
