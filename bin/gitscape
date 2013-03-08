@@ -4,12 +4,52 @@ begin
   require 'gitscape'
 rescue LoadError
   require 'rubygems'
+  require "optparse"
   require 'gitscape'
 end
 
+
+OVERVIEW = <<-EOS
+gitscape   perform git-related promotions in a consistent manner.
+
+The following actions are supported.
+
+  hotfix_start <branch-name>      Creates a branch off live called hotfix/<branch-name>
+  hotfix_finish [<branch-name>]   Merges the branch hotfix/<branch-name> into live,
+                                  the current release branch and master. If <branch-name> is
+                                  omitted and you are already on a hotfix branch, it is used.
+  release_start                   Branches master, incrementing the release number to create
+                                  a new release branch, release/i<version+1>. The release
+                                  branch is forced to the qa branch.
+                                  ** These actions update the origin server. **
+  release_finish                  After performing several validations, it merges the latest
+                                  release branch into live and master. Tags are created that
+                                  facilitate a rollback.
+                                  ** These actions update the origin server. **
+EOS
+
+# Parse option overrides.
+options = {}
+
+op = OptionParser.new do |op|
+  op.banner = 'Usage: gitscape [action] [options]'
+  op.separator('Options:')
+  op.on '--trace', 'Verbose output for debugging' do
+    options[:trace] = true
+  end
+  op.on '-h', '--help', 'Show a list of actions' do
+    puts OVERVIEW
+    exit
+  end
+end
+
+args = op.parse(ARGV)
+
+# Get the app name.  Note that if the app name is 'app', we have to rename it
+# so that it doesn't conflict with the 'app' subdirectory.
+
 if ARGV.size < 1
-  puts "*** Improper Usage ***"
-  puts "TODO: write usage help text"
+  puts op
   exit(1)
 else
   case ARGV[0]

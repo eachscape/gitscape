@@ -11,7 +11,7 @@ class Gitscape::Base
     @merge_options = "--no-ff"
     # Setup additional merge options based on the version of Git we have
     if git_version_at_least "1.7.4.0"
-      @merge_options += "-s recursive -Xignore-space-change"
+      @merge_options += " -s recursive -Xignore-space-change"
     else
       warn "Ignoring whitespace changes in merges is only available on Git 1.7.4+"
     end
