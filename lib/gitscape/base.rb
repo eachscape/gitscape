@@ -58,8 +58,8 @@ class Gitscape::Base
   end
 
   def git_has_conflicts puts_conflicts=true
-    conflicts_status = `git status --porcelain | grep UU`
-    has_conflicts = conflicts_status.length > 0
+    conflicts_status = `git status --porcelain`
+    has_conflicts = conflicts_status.scan(/[AUD]{2}/).count > 0
 
     puts conflicts_status if has_conflicts && puts_conflicts
 
@@ -198,8 +198,13 @@ class Gitscape::Base
       end
     end
 
+    # Checkout release branch
+    puts `git checkout #{release_branch_name}`
+    puts `git pull live`
+
     # Checkout live
-    `git checkout live`
+    puts `git checkout live`
+    puts `git pull live`
 
     # Record the revision of live used for the rollback tag
     live_rollback_revision = `git log -n1 --oneline`.scan(/(^[^ ]+) .*$/).flatten[0]
@@ -207,7 +212,7 @@ class Gitscape::Base
     merge_options = "--no-ff -s recursive -Xignore-space-change"
 
     # Merge the release branch into live
-    `git merge #{merge_options} #{release_branch_name}`
+    puts `git merge #{merge_options} #{release_branch_name}`
 
     # Error and conflict checking
     if !$?.success? then exit 4 end
@@ -230,8 +235,9 @@ class Gitscape::Base
     live_release_revision = `git log -n1 --oneline`.scan(/(^[^ ]+) .*$/).flatten[0]
 
     # Merge the release branch into master 
-    `git checkout master`
-    `git merge #{merge_options} #{release_branch_name}`
+    puts `git checkout master`
+    puts `git pull`
+    puts `git merge #{merge_options} #{release_branch_name}`
 
     # Error and conflict checking
     if !$?.success? then exit 4 end
@@ -242,21 +248,20 @@ class Gitscape::Base
     end
 
     # Tag the state of live for both release and rollback
-    `git tag rollback-to/i#{current_version_number} #{live_rollback_revision}`
+    puts `git tag rollback-to/i#{current_version_number} #{live_rollback_revision}`
     if !$?.success? then
       puts "=== WARNING: Failed to create rollback-to/i#{current_version_number} tag"
-      `git tag -d rollback-to/i#{current_version_number}`
     end
 
     `git tag live/i#{new_version_number}/release #{live_release_revision}`
     if !$?.success? then
-      `git tag -d rollback-to/i#{current_version_number}`
-      `git tag -d live/i#{new_version_number}/release #{live_release_revision}`
+      puts "=== WARNING: Failed to create live/i#{new_version_number}/release"
+      puts `git tag -d rollback-to/i#{current_version_number}`
       exit 4
     end
 
-    `git push origin live --tags`
-    `git push origin master`
+    puts `git push origin live --tags`
+    puts `git push origin master`
   end
 
   # Returns true if the supplied Git commit hash or reference exists
