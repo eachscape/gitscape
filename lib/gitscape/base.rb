@@ -200,11 +200,11 @@ class Gitscape::Base
 
     # Checkout release branch
     puts `git checkout #{release_branch_name}`
-    puts `git pull live`
+    puts `git pull origin #{release_branch_name}`
 
     # Checkout live
     puts `git checkout live`
-    puts `git pull live`
+    puts `git pull origin live`
 
     # Record the revision of live used for the rollback tag
     live_rollback_revision = `git log -n1 --oneline`.scan(/(^[^ ]+) .*$/).flatten[0]
@@ -236,7 +236,7 @@ class Gitscape::Base
 
     # Merge the release branch into master 
     puts `git checkout master`
-    puts `git pull`
+    puts `git pull origin master`
     puts `git merge #{merge_options} #{release_branch_name}`
 
     # Error and conflict checking
