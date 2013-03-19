@@ -1,12 +1,8 @@
 #!/usr/bin/env ruby
 
-begin
-  require 'gitscape'
-  require "optparse"
-rescue LoadError
-  require 'rubygems'
-  require 'gitscape'
-end
+require 'rubygems'
+require 'gitscape'
+require "optparse"
 
 
 OVERVIEW = <<-EOS
