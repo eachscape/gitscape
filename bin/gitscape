@@ -2,9 +2,9 @@
 
 begin
   require 'gitscape'
+  require "optparse"
 rescue LoadError
   require 'rubygems'
-  require "optparse"
   require 'gitscape'
 end
 
