@@ -135,9 +135,8 @@ class Gitscape::Base
 
   def release_start
     # Switch to master branch
-    # puts"About to checkout master"
-    `git checkout master`
-    # puts"Checkout of master branch successful"
+    puts `git checkout master`
+    puts `git pull origin master`
 
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
@@ -151,7 +150,7 @@ class Gitscape::Base
     release_branch_name = "i#{new_version_number}"
 
     # Cut the branch
-    `git checkout -b "release/#{release_branch_name}" master`
+    puts `git checkout -b "release/#{release_branch_name}" master`
     exit 1 unless $?.exitstatus == 0
 
     # Bump the version number
@@ -159,13 +158,15 @@ class Gitscape::Base
     exit 1 unless $?.exitstatus == 0
 
     # Commit the bump
-    `git commit -a -m "Begin #{release_branch_name} release candidate"`
+    puts `git commit -a -m "Begin #{release_branch_name} release candidate"`
+    exit 1 unless $?.exitstatus == 0
+
+    # Update qa to the new commit
+    puts `git push origin "release/#{release_branch_name}:qa"`
     exit 1 unless $?.exitstatus == 0
 
     # Push to origin
-    `git push origin -u "release/#{release_branch_name}"`
-    exit 1 unless $?.exitstatus == 0
-    `git push origin "release/#{release_branch_name}:qa"`
+    puts `git push origin -u "release/#{release_branch_name}"`
     exit 1 unless $?.exitstatus == 0
   end
 
@@ -182,6 +183,8 @@ class Gitscape::Base
     release_branch_name = "release/i#{new_version_number}"
     release_branch = @repo.branch release_branch_name
 
+    # Fetch in order to have the latest branch revisions
+
     # Get branch information for checks
     branch_keys = ["name", "revision", "message"]
     branch_values = `git branch -av`.scan(/^[ \*]*([^ \*]+) +([^ ]+) +(.*)$/)
@@ -189,7 +192,7 @@ class Gitscape::Base
     branch_revisions = Hash[ branches.map {|branch| [branch["name"], branch["revision"]] } ]
 
     # Check if the required branches in sync
-    required_synced_branches = [ [release_branch_name, "remotes/origin/qa"], ["master", "remotes/origin/master"], ["live", "remotes/origin/live"] ]
+    required_synced_branches = [[release_branch_name, "remotes/origin/qa"]]
     required_synced_branches.each do |branch_pair|
       if branch_revisions[ branch_pair[0] ] != branch_revisions[ branch_pair[0] ]
         puts "*** ERROR: The #{branch_pair[0]} branch is not the same as the #{branch_pair[1]} branch.
