@@ -22,39 +22,46 @@ class Gitscape::Base
   end
 
   def checkout(branch_name)
-    begin
-      @repo.revparse(branch_name)
-    rescue
-      raise Exception.new "No branch '#{branch_name}' found"
-    end
-    puts "Switching to branch '#{branch_name}'..."
-    @repo.checkout(branch_name)
+    puts "--- Switching to branch '#{branch_name}' ---"
+    `git checkout -b #{branch_name}`
+
+    throw "!!! Failed to switch to branch #{branch_name} !!!" if current_branch_name != branch_name
   end
 
   def git_working_copy_is_clean puts_changes=true
+
     # Check if the working copy is clean, if not, exit
+    
     changes = `git status -uno --ignore-submodules=all --porcelain`
     working_copy_clean = changes.length == 0
     if !working_copy_clean && puts_changes
-      puts "Your working copy is not clean, either commit, stash, or reset your changes then try again."
+      puts "*** Your working copy is not clean, either commit, stash, or reset your changes then try again. ***"
       puts changes
     end
 
     working_copy_clean
   end
 
-  def live_current_version_number
-    current_branch = @repo.current_branch
-    live_branch = @repo.branch "live"
+  def live_iteration
+    toRet = `git branch -a --merged live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
+    toRet
+  end
 
-    `git checkout #{live_branch.full}` unless current_branch == live_branch
+  def current_branch_name
+    toRet = `git status --porcelain -b`.scan(/## (.*)/).flatten[0]
+    toRet
+  end
 
-    version_file = File.new("version", "r")
-    live_current_version_number = version_file.read.delete("i").to_i
+  def current_release_branch_number
+    unmerged_into_live_branch_names = `git branch -a --no-merged live`.split("\n")
+    release_branch_regex = /release\/i(\d+)$/
 
-    `git checkout #{current_branch}` unless current_branch == live_branch
+    candidates = unmerged_into_live_branch_names.select{ |b| release_branch_regex.match b}.map{|b| b.scan(release_branch_regex).flatten[0].to_i}.sort
+    candidates.last
+  end
 
-    live_current_version_number
+  def current_release_branch_name
+    "release/i#{current_release_branch_number}"
   end
 
   def git_has_conflicts puts_conflicts=true
@@ -66,67 +73,64 @@ class Gitscape::Base
     has_conflicts
   end
 
-  def hotfix_start(hotfix_branch_name=nil)
+  def hotfix_start(hotfix_branch=nil)
     checkout "live"
 
-    if hotfix_branch_name.length == 0
-      exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_branch_name>"
+    if hotfix_branch.length == 0
+      exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_branch>"
       raise exception_message
     end
 
-    hotfix_branch_name = "hotfix/#{hotfix_branch_name}"
-    puts "Creating hotfix branch '#{hotfix_branch_name}'..."
+    hotfix_branch = "hotfix/#{hotfix_branch}"
+    puts "=== Creating hotfix branch '#{hotfix_branch}' ==="
 
-    hotfix_branch = @repo.branch(hotfix_branch_name)
-    `git checkout -b #{hotfix_branch.full}`
-    @repo.checkout(hotfix_branch)
+    puts `git checkout -b #{hotfix_branch}`
   end
 
-  def hotfix_finish(hotfix_branch_name=nil)
+  def hotfix_finish(hotfix_branch=nil)
     # TODO:
     # 1. Tag the new live revision with 'live/<branch_name_without_prefix>'
 
-    usage_string = "expected usage: hotfix_finish [<hotfix_branch_name>]
-    hotfix_branch_name: the name of the hotfix branch to finish.
+    usage_string = "expected usage: hotfix_finish [<hotfix_branch>]
+    hotfix_branch: the name of the hotfix branch to finish.
       if ommitted, you must currently be on a hotfix branch"
 
-    previous_branch = @repo.current_branch
+    previous_branch = current_branch_name
 
     if previous_branch.start_with? "hotfix"
-      hotfix_branch_name ||= previous_branch
+      hotfix_branch ||= previous_branch
     end
 
-    unless @repo.branches.include? hotfix_branch_name
-    end
-
-    merge_master = true
-    master_branch = @repo.branch "master"
-
-    if hotfix_branch_name.to_s.empty?
-      puts "!!! not currently on a hotfix branch, and no branch name was provided as an argument !!!"
+    if hotfix_branch.to_s.empty?
+      puts "!!! Not currently on a hotfix branch, and no branch name was provided as an argument !!!"
       puts usage_string
       exit 1
     end
 
-    hotfix_branch = @repo.branch hotfix_branch_name
-    # TODO The next line breaks at iteration 100
-    development_branch = @repo.branches.select {|branch| branch.full.start_with? "release/"}.sort{|a, b| a.name <=> b.name}.last
-    development_branch = master_branch if development_branch == nil
-    live_branch = @repo.branch "live"
-
     # Collect the set of branches we'd like to merge the hotfix into
-    merge_branches = [development_branch, live_branch]
-    merge_branches << master_branch if !(merge_branches.include? master_branch) && merge_master
+    merge_branches = ["master", current_release_branch_name, "live"]
 
-    # Merge the hotfix into branches
+    # Merge the hotfix into merge_branches
     for branch in merge_branches
+
+      # Calculate merge_options
       merge_options = @merge_options
       merge_options += " --log" if branch == "master"
 
-      `git checkout #{branch.full}`
-      `git merge #{merge_options} #{hotfix_branch.full}`
+      # Attempt merge
+      `git checkout #{branch}`
+      `git merge #{merge_options} #{hotfix_branch}`
+      
+      # Bail on failures
       exit 1 if !$?.success?
-      raise "Merge on #{branch.full} has failed.\nResolve the conflicts and run the script again." if git_has_conflicts
+      raise "Merge on #{branch} has failed.\nResolve the conflicts and run the script again." if git_has_conflicts
+
+      # If we just merged the live branch, tag this revision, and push that tag to origin
+      if branch == "live"
+        `git tag live/i#{live_iteration}/#{hotfix_branch}`
+        `git push --tags`
+      end
+
     end
 
     # Checkout previous branch for user convenience
@@ -177,7 +181,7 @@ class Gitscape::Base
     # Get the right release_branch_name to merge
     current_version_number = new_version_number - 1
     if new_version_number == 0
-      current_version_number = live_current_version_number
+      current_version_number = live_iteration
       new_version_number = current_version_number + 1
     end
     release_branch_name = "release/i#{new_version_number}"
