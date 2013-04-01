@@ -9,16 +9,24 @@ class Gitscape::Base
 
     # Always add a merge commit at the end of a merge
     @merge_options = "--no-ff"
+    
     # Setup additional merge options based on the version of Git we have
     if git_version_at_least "1.7.4.0"
       @merge_options += " -s recursive -Xignore-space-change"
     else
       warn "Ignoring whitespace changes in merges is only available on Git 1.7.4+"
     end
-  end
-
-  def branch_names
-    @repo.branches.map { |b| b.full }
+    
+    @env_branch_by_dev_branch = Hash.new do |h, k|  
+      case k
+        when "master"
+          "staging"
+        when /release\/i\d+/
+          "qa"
+        when "live"
+          "live"
+      end
+    end
   end
 
   def git_working_copy_is_clean puts_changes=true
@@ -80,9 +88,11 @@ class Gitscape::Base
     puts `git checkout -b #{hotfix_branch}`
   end
 
-  def hotfix_finish(hotfix_branch=nil)
-    # TODO:
-    # 1. Tag the new live revision with 'live/<branch_name_without_prefix>'
+  def hotfix_finish hotfix_branch="", options={:env_depth=>:staging, :push=>true, :update_env=>true}
+    # option defaults
+    options[:env_depth]   = :staging  if options[:env_depth].nil?
+    options[:push]        = true      if options[:push].nil?
+    options[:update_env]  = true      if options[:update_env].nil?
 
     usage_string = "expected usage: hotfix_finish [<hotfix_branch>]
     hotfix_branch: the name of the hotfix branch to finish.
@@ -101,9 +111,12 @@ class Gitscape::Base
     end
 
     # Collect the set of branches we'd like to merge the hotfix into
-    merge_branches = ["master", current_release_branch_name, "live"]
+    merge_branches = ["master"]
+    merge_branches << current_release_branch_name if [:qa, :live].include?(options[:env_depth])
+    merge_branches << "live" if options[:env_depth] == :live
 
     # Merge the hotfix into merge_branches
+    puts "=== Merging hotfix into branches #{merge_branches} ==="
     for branch in merge_branches
 
       # Calculate merge_options
@@ -111,17 +124,21 @@ class Gitscape::Base
       merge_options += " --log" if branch == "master"
 
       # Attempt merge
-      `git checkout #{branch}`
-      `git merge #{merge_options} #{hotfix_branch}`
+      puts `git checkout #{branch}`
+      puts `git pull`
+      puts `git merge #{merge_options} #{hotfix_branch}`
       
       # Bail on failures
       exit 1 if !$?.success?
-      raise "Merge on #{branch} has failed.\nResolve the conflicts and run the script again." if git_has_conflicts
-
+      raise "Merge failure(s) on #{branch}.\nResolve conflicts, and run the script again." if git_has_conflicts
+      
+      puts `git push origin #{branch}` if options[:push]
+      puts `git push origin #{branch}:#{@env_branch_by_dev_branch[branch]}` if options[:update_env]
+      
       # If we just merged the live branch, tag this revision, and push that tag to origin
       if branch == "live"
-        `git tag live/i#{live_iteration}/#{hotfix_branch}`
-        `git push --tags`
+        puts `git tag live/i#{live_iteration}/#{hotfix_branch}`
+        puts `git push --tags`
       end
 
     end
