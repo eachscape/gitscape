@@ -21,13 +21,6 @@ class Gitscape::Base
     @repo.branches.map { |b| b.full }
   end
 
-  def checkout(branch_name)
-    puts "--- Switching to branch '#{branch_name}' ---"
-    `git checkout -b #{branch_name}`
-
-    throw "!!! Failed to switch to branch #{branch_name} !!!" if current_branch_name != branch_name
-  end
-
   def git_working_copy_is_clean puts_changes=true
 
     # Check if the working copy is clean, if not, exit
@@ -74,7 +67,7 @@ class Gitscape::Base
   end
 
   def hotfix_start(hotfix_branch=nil)
-    checkout "live"
+    puts `git checkout live`
 
     if hotfix_branch.length == 0
       exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_branch>"
