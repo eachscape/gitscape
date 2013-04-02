@@ -44,7 +44,7 @@ class Gitscape::Base
   end
 
   def live_iteration
-    toRet = `git branch -a --merged live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
+    toRet = `git branch -a --merged origin/live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
     toRet
   end
 
@@ -147,7 +147,11 @@ class Gitscape::Base
     `git checkout #{previous_branch}`
   end
 
-  def release_start
+  def release_start options={:push=>true, :update_env=>true}
+    # Handle default options
+    options[:push]        = true  if options[:push].nil?
+    options[:update_env]  = true  if options[:update_env].nil?
+    
     # Switch to master branch
     puts `git checkout master`
     puts `git pull origin master`
@@ -155,47 +159,47 @@ class Gitscape::Base
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
 
-    # Figure out the previous and new version numbers
-    version_file = File.new("version", "r")
-    previous_version_number = version_file.read.delete("i").to_i
-    new_version_number = previous_version_number + 1
-
-    # Get the new release_branch_name
-    release_branch_name = "i#{new_version_number}"
+    new_version_number = live_iteration + 1
+    release_branch_name = "release/i#{new_version_number}"
 
     # Cut the branch
-    puts `git checkout -b "release/#{release_branch_name}" master`
+    puts `git checkout -b "#{release_branch_name}" master`
     exit 1 unless $?.exitstatus == 0
 
     # Bump the version number
-    `echo "#{release_branch_name}" > ./version`
+    `echo "#i{new_version_number}" > ./version`
     exit 1 unless $?.exitstatus == 0
 
     # Commit the bump
-    puts `git commit -a -m "Begin #{release_branch_name} release candidate"`
+    puts `git commit -a -m "Begin i#{new_version_number} release candidate"`
     exit 1 unless $?.exitstatus == 0
+    
+    # Push to origin
+    if options[:push]
+      puts `git push origin -u "#{release_branch_name}"`
+      exit 1 unless $?.exitstatus == 0
+    end
 
     # Update qa to the new commit
-    puts `git push origin "release/#{release_branch_name}:qa"`
-    exit 1 unless $?.exitstatus == 0
-
-    # Push to origin
-    puts `git push origin -u "release/#{release_branch_name}"`
-    exit 1 unless $?.exitstatus == 0
+    if options[:update_env]
+      puts `git push origin "#{release_branch_name}:qa"`
+      exit 1 unless $?.exitstatus == 0
+    end
   end
 
-  def release_finish new_version_number=0
+  def release_finish options={:push=>true, :update_env=>true}
+    # Handle default options
+    options[:push]        = true  if options[:push].nil?
+    options[:update_env]  = true  if options[:update_env].nil?
+    
     # Check if the working copy is clean, if not, exit
     exit 1 unless git_working_copy_is_clean
 
     # Get the right release_branch_name to merge
-    current_version_number = new_version_number - 1
-    if new_version_number == 0
-      current_version_number = live_iteration
-      new_version_number = current_version_number + 1
-    end
-    release_branch_name = "release/i#{new_version_number}"
-    release_branch = @repo.branch release_branch_name
+    current_version_number = live_iteration
+    new_version_number = current_version_number + 1
+    
+    release_branch = "release/i#{new_version_number}"
 
     # Fetch in order to have the latest branch revisions
 
@@ -206,7 +210,7 @@ class Gitscape::Base
     branch_revisions = Hash[ branches.map {|branch| [branch["name"], branch["revision"]] } ]
 
     # Check if the required branches in sync
-    required_synced_branches = [[release_branch_name, "remotes/origin/qa"]]
+    required_synced_branches = [[release_branch, "remotes/origin/qa"]]
     required_synced_branches.each do |branch_pair|
       if branch_revisions[ branch_pair[0] ] != branch_revisions[ branch_pair[0] ]
         puts "*** ERROR: The #{branch_pair[0]} branch is not the same as the #{branch_pair[1]} branch.
@@ -216,8 +220,8 @@ class Gitscape::Base
     end
 
     # Checkout release branch
-    puts `git checkout #{release_branch_name}`
-    puts `git pull origin #{release_branch_name}`
+    puts `git checkout #{release_branch}`
+    puts `git pull origin #{release_branch}`
 
     # Checkout live
     puts `git checkout live`
@@ -229,12 +233,12 @@ class Gitscape::Base
     merge_options = "--no-ff -s recursive -Xignore-space-change"
 
     # Merge the release branch into live
-    puts `git merge #{merge_options} #{release_branch_name}`
+    puts `git merge #{merge_options} #{release_branch}`
 
     # Error and conflict checking
     if !$?.success? then exit 4 end
     if git_has_conflicts then
-      puts "Merge conflicts when pulling #{release_branch_name} into live"
+      puts "Merge conflicts when pulling #{release_branch} into live"
       puts "Please bother Xavier if you see this message :)"
       exit 2
     end
@@ -254,12 +258,12 @@ class Gitscape::Base
     # Merge the release branch into master 
     puts `git checkout master`
     puts `git pull origin master`
-    puts `git merge #{merge_options} #{release_branch_name}`
+    puts `git merge #{merge_options} #{release_branch}`
 
     # Error and conflict checking
     if !$?.success? then exit 4 end
     if git_has_conflicts then
-      puts "Merge conflicts when pulling #{release_branch_name} into master"
+      puts "Merge conflicts when pulling #{release_branch} into master"
       puts "Please bother Xavier if you see this message :)"
       exit 2
     end
@@ -276,9 +280,11 @@ class Gitscape::Base
       puts `git tag -d rollback-to/i#{current_version_number}`
       exit 4
     end
-
-    puts `git push origin live --tags`
-    puts `git push origin master`
+    
+    if options[:push] && options[:update_env]
+      puts `git push origin live --tags`
+      puts `git push origin master`
+    end
   end
 
   # Returns true if the supplied Git commit hash or reference exists
