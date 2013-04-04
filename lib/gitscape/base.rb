@@ -74,11 +74,15 @@ class Gitscape::Base
     has_conflicts
   end
 
-  def hotfix_start(hotfix_branch=nil)
+  def hotfix_start hotfix_branch=nil, options={:push=>false}
+    # option defaults
+    options[:push] = false if options[:push].nil?
+    
     puts `git checkout live`
+    puts `git pull origin`
 
     if hotfix_branch.length == 0
-      exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_branch>"
+      exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_name> [--[no-]push]"
       raise exception_message
     end
 
@@ -86,9 +90,10 @@ class Gitscape::Base
     puts "=== Creating hotfix branch '#{hotfix_branch}' ==="
 
     puts `git checkout -b #{hotfix_branch}`
+    puts `git push origin #{hotfix_branch}` if options[:push]
   end
 
-  def hotfix_finish hotfix_branch="", options={:env_depth=>:staging, :push=>true, :update_env=>true}
+  def hotfix_finish hotfix_branch=nil, options={:env_depth=>:staging, :push=>true, :update_env=>true}
     # option defaults
     options[:env_depth]   = :staging  if options[:env_depth].nil?
     options[:push]        = true      if options[:push].nil?
@@ -100,8 +105,10 @@ class Gitscape::Base
 
     previous_branch = current_branch_name
 
-    if previous_branch.start_with? "hotfix"
+    if previous_branch.to_s.start_with? "hotfix"
       hotfix_branch ||= previous_branch
+    else
+      hotfix_branch = "hotfix/#{hotfix_branch}"
     end
 
     if hotfix_branch.to_s.empty?
