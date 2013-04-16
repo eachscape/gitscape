@@ -49,12 +49,12 @@ class Gitscape::Base
   end
 
   def current_branch_name
-    toRet = `git status --porcelain -b`.scan(/## (.*)/).flatten[0]
+    toRet = `git branch`.scan(/\* (.*)$/).flatten[0]
     toRet
   end
 
   def current_release_branch_number
-    unmerged_into_live_branch_names = `git branch -a --no-merged live`.split("\n")
+    unmerged_into_live_branch_names = `git branch -a --no-merged origin/live`.split("\n")
     release_branch_regex = /release\/i(\d+)$/
 
     candidates = unmerged_into_live_branch_names.select{ |b| release_branch_regex.match b}.map{|b| b.scan(release_branch_regex).flatten[0].to_i}.sort
@@ -103,12 +103,11 @@ class Gitscape::Base
     hotfix_branch: the name of the hotfix branch to finish.
       if ommitted, you must currently be on a hotfix branch"
 
+    hotfix_branch = "hotfix/#{hotfix_branch}"
+    
     previous_branch = current_branch_name
-
-    if previous_branch.to_s.start_with? "hotfix"
-      hotfix_branch ||= previous_branch
-    else
-      hotfix_branch = "hotfix/#{hotfix_branch}"
+    if previous_branch.to_s.start_with? "hotfix/"
+      hotfix_branch = previous_branch
     end
 
     if hotfix_branch.to_s.empty?

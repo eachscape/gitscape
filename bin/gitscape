@@ -65,6 +65,7 @@ else
       hotfix_branch = ARGV[1]
       Gitscape::Base.new.hotfix_start hotfix_branch, options
     when "hotfix_finish"
+      hotfix_branch = ARGV[1]
       Gitscape::Base.new.hotfix_finish hotfix_branch, options
     when "release_start"
       Gitscape::Base.new.release_start options
