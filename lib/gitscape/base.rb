@@ -173,7 +173,7 @@ class Gitscape::Base
     exit 1 unless $?.exitstatus == 0
 
     # Bump the version number
-    `echo "#i{new_version_number}" > ./version`
+    `echo "i#{new_version_number}" > ./version`
     exit 1 unless $?.exitstatus == 0
 
     # Commit the bump
