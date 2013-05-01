@@ -93,11 +93,11 @@ class Gitscape::Base
     puts `git push origin #{hotfix_branch}` if options[:push]
   end
 
-  def hotfix_finish hotfix_branch=nil, options={:env_depth=>:staging, :push=>true, :update_env=>true}
+  def hotfix_finish hotfix_branch=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
     # option defaults
     options[:env_depth]   = :staging  if options[:env_depth].nil?
     options[:push]        = true      if options[:push].nil?
-    options[:update_env]  = true      if options[:update_env].nil?
+    options[:update_env]  = false     if options[:update_env].nil?
 
     usage_string = "expected usage: hotfix_finish [<hotfix_branch>]
     hotfix_branch: the name of the hotfix branch to finish.
