@@ -1,3 +1,3 @@
 module Gitscape
-  VERSION = '1.5.7'
+  VERSION = '1.6.1'
 end
