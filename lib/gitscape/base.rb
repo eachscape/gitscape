@@ -81,7 +81,7 @@ class Gitscape::Base
     puts `git checkout live`
     puts `git pull origin`
 
-    if hotfix_branch.length == 0
+    if hotfix_branch.to_s.length == 0
       exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_name> [--[no-]push]"
       raise exception_message
     end
@@ -291,6 +291,26 @@ class Gitscape::Base
       puts `git push origin live --tags`
       puts `git push origin master`
     end
+  end
+  
+  def tag_cleanup options={:push => true}
+    # Handle default options
+    options[:push] = true if options[:push].nil?
+    
+    # Do a fetch in order to ensure we have all the latest tags
+    `git fetch`
+    
+    # Select which tags to keep.
+    # We currently keep tags which fulfill any of the following
+    # 1. starts with 'service/'
+    # 2. starts with 'rollback-to/' or 'live/', and has an iteration number >= the live_iteration number - 3
+    tags = `git tag`.split "\n" 
+    tags_to_delete = tags.select { |tag| !(!/^service\//.match(tag).nil? || /^(?:live|rollback-to)\/i(\d+)/.match(tag).to_a[1].to_i >= live_iteration - 3) }
+    
+    puts "Deleting the following tags.\nThese changes #{options[:push] ? "will" : "will not"} be pushed to origin.\n"
+    
+    tags_to_delete.each { |tag| puts `git tag -d #{tag}` }
+    tags_to_delete.each { |tag| puts `git push origin :refs/tags/#{tag}` } if options[:push]
   end
 
   # Returns true if the supplied Git commit hash or reference exists

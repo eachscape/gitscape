@@ -71,6 +71,8 @@ else
       Gitscape::Base.new.release_start options
     when "release_finish"
       Gitscape::Base.new.release_finish options
+    when "tag_cleanup"
+      Gitscape::Base.new.tag_cleanup options
     else
       puts "Unknown command: #{command_name}"
   end
