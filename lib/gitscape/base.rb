@@ -78,6 +78,9 @@ class Gitscape::Base
     # option defaults
     options[:push] = false if options[:push].nil?
     
+    # Check that the working copy is clean
+    exit 1 unless git_working_copy_is_clean
+    
     puts `git checkout live`
     puts `git pull origin`
 
@@ -98,6 +101,9 @@ class Gitscape::Base
     options[:env_depth]   = :staging  if options[:env_depth].nil?
     options[:push]        = true      if options[:push].nil?
     options[:update_env]  = false     if options[:update_env].nil?
+
+    # Check that the working copy is clean
+    exit 1 unless git_working_copy_is_clean
 
     usage_string = "expected usage: hotfix_finish [<hotfix_branch>]
     hotfix_branch: the name of the hotfix branch to finish.
