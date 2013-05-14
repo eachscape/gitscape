@@ -62,7 +62,12 @@ class Gitscape::Base
   end
 
   def current_release_branch_name
-    "release/i#{current_release_branch_number}"
+    release_number = current_release_branch_number
+    if !release_number.nil?
+      "release/i#{current_release_branch_number}"
+    else
+      nil
+    end
   end
 
   def git_has_conflicts puts_conflicts=true
