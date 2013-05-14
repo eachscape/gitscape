@@ -51,6 +51,14 @@ op = OptionParser.new do |op|
   op.on '-e', '--env-depth=ENV', [:staging, :qa, :live], 'The level of environments to push changes to' do |depth|
     options[:env_depth] = depth
   end
+  
+  op.on '--qa', 'Sets the environment depth for the command to the qa environment' do
+    options[:env_depth] = :qa
+  end
+  
+  op.on '--live', 'Sets the environment depth for the command to the live environment' do
+    options[:env_depth] = :live
+  end
 end
 
 op.parse!(ARGV)
