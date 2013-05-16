@@ -258,11 +258,11 @@ class Gitscape::Base
     end
 
     # Ensure there is zero diff between what was tested on origin/qa and the new live
-    critical_diff = `git diff --stat live origin/qa`
+    critical_diff = `git diff live origin/qa`
     if critical_diff.length > 0
-      puts "This live merge has code that was not on the qa branch."
+      puts "\n!!! This live merge has code that was not on the qa branch !!!\nDiff:"
       puts critical_diff
-      puts "Run the command 'git reset --hard' to undo the merge, and raise this error with Phil and others involved to determine whether the release should happen."
+      puts "!!! Run the command 'git reset --hard' to undo the merge, and raise this error with Phil and others involved to determine next step !!!"
       exit 3
     end
 
