@@ -236,16 +236,13 @@ class Gitscape::Base
       end
     end
 
-    # Checkout release branch
+    # Checkout and pull release_branch
     puts `git checkout #{release_branch}`
     puts `git pull origin #{release_branch}`
 
-    # Checkout live
+    # Checkout and pull live
     puts `git checkout live`
     puts `git pull origin live`
-
-    # Record the revision of live used for the rollback tag
-    live_rollback_revision = `git log -n1 --oneline`.scan(/(^[^ ]+) .*$/).flatten[0]
 
     merge_options = "--no-ff -s recursive -Xignore-space-change"
 
@@ -286,7 +283,7 @@ class Gitscape::Base
     end
 
     # Tag the state of live for both release and rollback
-    puts `git tag rollback-to/i#{current_version_number} #{live_rollback_revision}`
+    puts `git tag rollback-to/i#{current_version_number} live~`
     if !$?.success? then
       puts "=== WARNING: Failed to create rollback-to/i#{current_version_number} tag"
     end
