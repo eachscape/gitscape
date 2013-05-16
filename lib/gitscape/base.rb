@@ -212,6 +212,9 @@ class Gitscape::Base
     # Check if the working copy is clean, if not, exit
     exit 1 unless git_working_copy_is_clean
 
+    # Do a git fetch to ensure everything all refs are sync with origin
+    puts `git fetch`
+
     # Get the right release_branch_name to merge
     current_version_number = live_iteration
     new_version_number = current_version_number + 1
