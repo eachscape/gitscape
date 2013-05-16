@@ -301,9 +301,9 @@ class Gitscape::Base
     end
   end
   
-  def tag_cleanup options={:push => true}
+  def tag_cleanup options
     # Handle default options
-    options[:push] = true if options[:push].nil?
+    options[:push] = false if options[:push].nil?
     
     # Do a fetch in order to ensure we have all the latest tags
     `git fetch`
