@@ -4,8 +4,6 @@ require "git"
 class Gitscape::Base
 
   def initialize
-    # Use the current directory as our target repository
-    @repo = Git.open "."
 
     # Always add a merge commit at the end of a merge
     @merge_options = "--no-ff"
@@ -27,6 +25,7 @@ class Gitscape::Base
           "live"
       end
     end
+
   end
 
   def git_working_copy_is_clean puts_changes=true
@@ -334,27 +333,6 @@ class Gitscape::Base
     end
   end
 
-  def self.run_script(script, quiet=true)
-    IO.popen(script.split("\n").join(" && ")) do |io|
-      while (line = io.gets) do
-        unless quiet
-          puts line
-        end
-      end
-    end
-    $?.exitstatus
-  end
-
-  def promote_branch(head, upstream)
-    run_script <<-EOH
-      git fetch
-      git stash
-      git checkout #{head}
-      git reset --hard origin/#{head}
-      git push -f origin #{head}:#{upstream}
-    EOH
-  end
-
   # Get the system's current git version
   def git_version
     @git_version ||= `git --version`.strip.split(" ").last
@@ -377,65 +355,5 @@ class Gitscape::Base
     true # If you get all the way here, all 4 positions match precisely
   end
 
-  def self.result_ok?(result)
-    if result.nil? or result == 0
-      puts "done"
-      return true
-    else
-      puts "failed"
-      puts "Aborting"
-      run_script "git checkout master"
-      return false
-    end
-  end
-
-  def self.start_iteration(iteration, projects=PROJECTS)
-    projects.each do |proj|
-      print "Cutting branch #{iteration} for #{proj}..."
-      result = run_script <<-EOH
-        cd /code/#{proj}/
-        git fetch
-        git branch #{iteration} origin/master
-        git push origin #{iteration}
-        git push -f origin #{iteration}:qa
-      EOH
-      return unless result_ok?(result)
-    end
-  end
-
-  def self.deploy_iteration(iteration, projects=PROJECTS)
-    date = `date +%Y%m%d-%H%M`.strip
-    tag = "#{iteration}-#{date}"
-    puts "Starting deploy of #{iteration}"
-    puts "Will tag with '#{tag}'"
-    puts
-
-    projects.each do |proj|
-      print "Tagging #{proj}..."
-      result = run_script <<-EOH
-        cd /code/#{proj}/
-        git stash
-        git checkout qa
-        git fetch
-        git reset --hard origin/qa
-        git tag -a #{tag} -m 'Release to live'
-      EOH
-      return unless result_ok?(result)
-    end
-
-    projects.each do |proj|
-      print "Pushing #{proj}..."
-      result = run_script <<-EOH
-        cd /code/#{proj}/
-        git push -f origin qa:live
-        git push --tags
-        git checkout master
-      EOH
-      #return unless result_ok?(result)
-    end
-
-    puts
-    puts "Deploy of #{iteration} completed successfully."
-  end
 end
 
