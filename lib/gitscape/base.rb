@@ -264,7 +264,7 @@ class Gitscape::Base
     if !$?.success? then exit 4 end
     if git_has_conflicts then
       puts "Merge conflicts when pulling #{release_branch} into live"
-      puts "Please bother Xavier if you see this message :)"
+      puts "Please report a problem if you see this message :)"
       exit 2
     end
 
@@ -289,7 +289,7 @@ class Gitscape::Base
     if !$?.success? then exit 4 end
     if git_has_conflicts then
       puts "Merge conflicts when pulling #{release_branch} into master"
-      puts "Please bother Xavier if you see this message :)"
+      puts "Please report a problem if you see this message :)"
       exit 2
     end
 
