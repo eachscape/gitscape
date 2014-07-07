@@ -42,6 +42,15 @@ class Gitscape::Base
     working_copy_clean
   end
 
+  # Assume the highest branch not yet merged into live of the form 
+  # release/i[\d]+ is the QA branch
+  def qa_iteration
+    toRet = `git branch -a --no-merged origin/live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
+    toRet
+  end
+
+  # Assume the highest branch already merged into live of the form 
+  # release/i[\d]+ is the live branch
   def live_iteration
     toRet = `git branch -a --merged origin/live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
     toRet
