@@ -42,13 +42,6 @@ class Gitscape::Base
     working_copy_clean
   end
 
-  # Assume the highest branch not yet merged into live of the form 
-  # release/i[\d]+ is the QA branch
-  def qa_iteration
-    toRet = `git branch -a --no-merged origin/live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
-    toRet
-  end
-
   # Assume the highest branch already merged into live of the form 
   # release/i[\d]+ is the live branch
   def live_iteration
@@ -87,25 +80,37 @@ class Gitscape::Base
     has_conflicts
   end
 
-  def hotfix_start hotfix_branch=nil, options={:push=>false}
+  def generic_branch_start branch_type, from_branch, new_branch, options
     # option defaults
     options[:push] = false if options[:push].nil?
     
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
     
-    if hotfix_branch.to_s.length == 0
-      raise "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_name> [--[no-]push]"
+    if new_branch.to_s.length == 0
+      raise "*** Improper Usage ***\nExpected Usage: #{branch_type}_start <#{branch_type}_name> [--[no-]push]"
     end
 
     puts `git checkout live`
     puts `git pull origin`
 
-    hotfix_branch = "hotfix/#{hotfix_branch}"
-    puts "=== Creating hotfix branch '#{hotfix_branch}' ==="
+    new_branch = "#{branch_type}/#{new_branch}"
+    puts "=== Creating #{branch_type} branch '#{new_branch}' ==="
 
-    puts `git checkout -b #{hotfix_branch}`
-    puts `git push origin #{hotfix_branch}` if options[:push]
+    puts `git checkout -b #{new_branch}`
+    puts `git push origin #{new_branch}` if options[:push]
+  end
+
+  def hotfix_start new_branch=nil, options={:push=>false}
+    generic_branch_start 'hotfix', 'live', new_branch, options
+  end
+
+  def bugfix_start hotfix_branch=nil, options={:push=>false}
+    generic_branch_start 'bugfix', "release/i#{current_release_branch_number}", new_branch, options
+  end
+
+  def feature_start hotfix_branch=nil, options={:push=>false}
+    generic_branch_start 'feature', 'master', new_branch, options
   end
 
   def hotfix_finish hotfix_branch=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
