@@ -94,13 +94,12 @@ class Gitscape::Base
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
     
+    if hotfix_branch.to_s.length == 0
+      raise "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_name> [--[no-]push]"
+    end
+
     puts `git checkout live`
     puts `git pull origin`
-
-    if hotfix_branch.to_s.length == 0
-      exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_name> [--[no-]push]"
-      raise exception_message
-    end
 
     hotfix_branch = "hotfix/#{hotfix_branch}"
     puts "=== Creating hotfix branch '#{hotfix_branch}' ==="
