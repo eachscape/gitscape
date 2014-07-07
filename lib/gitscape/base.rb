@@ -118,10 +118,6 @@ class Gitscape::Base
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
 
-    usage_string = "expected usage: hotfix_finish [<hotfix_branch>]
-    hotfix_branch: the name of the hotfix branch to finish.
-      if ommitted, you must currently be on a hotfix branch"
-
     hotfix_branch = "hotfix/#{hotfix_branch}"
     
     previous_branch = current_branch_name
@@ -131,7 +127,7 @@ class Gitscape::Base
 
     if hotfix_branch.to_s.empty?
       puts "!!! Not currently on a hotfix branch, and no branch name was provided as an argument !!!"
-      puts usage_string
+      puts finish_usage_string('hotfix')
       exit 1
     end
 
@@ -364,5 +360,10 @@ class Gitscape::Base
     true # If you get all the way here, all 4 positions match precisely
   end
 
+  def finish_usage_string(branch_type)
+    "expected usage: #{branch_type}_finish [<#{branch_type}_branch>]
+    #{branch_type}_branch: the name of the #{branch_type} branch to finish.
+      if omitted, you must currently be on a #{branch_type} branch"
+  end
 end
 
