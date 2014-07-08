@@ -47,6 +47,10 @@ class Gitscape::Base
   def live_iteration
     live_iteration_tag_regex = /^live\/i(\d+)/
     toRet = `git tag`.split("\n").select { |tag| live_iteration_tag_regex.match tag }.map { |tag| tag.scan(live_iteration_tag_regex).flatten[0].to_i }.sort.last
+    # A bit of a chicken-and-egg problem. You might not have any tags for live, so look for something else...
+    if toRet.nil?
+      toRet = `git branch -a --merged origin/live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
+    end
     toRet
   end
 
