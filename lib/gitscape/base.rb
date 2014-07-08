@@ -45,6 +45,7 @@ class Gitscape::Base
   # Assume the highest branch already merged into live of the form 
   # release/i[\d]+ is the live branch
   def live_iteration
+    live_iteration_tag_regex = /^live\/i(\d+)/
     toRet = `git tag`.split("\n").select { |tag| live_iteration_tag_regex.match tag }.map { |tag| tag.scan(live_iteration_tag_regex).flatten[0].to_i }.sort.last
     toRet
   end
