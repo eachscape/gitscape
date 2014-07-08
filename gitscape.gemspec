@@ -11,7 +11,8 @@ Gem::Specification.new do |s|
   s.email	      = ["gitscape@eachscape.com"]
   s.homepage	  = "https://github.com/eachscape/gitscape"
   s.summary     = "Various Git utilities for workflows."
-  s.description = "Various Git utilities for workflows."
+  s.description = "Provides a series of shell commands that allow you to control 3 timestreams of"
+                  "git branches for development, testing and deployment environments."
 
   s.add_dependency "git", "~> 1.2.5"
 

@@ -105,11 +105,11 @@ class Gitscape::Base
     generic_branch_start 'hotfix', 'live', new_branch, options
   end
 
-  def bugfix_start hotfix_branch=nil, options={:push=>false}
+  def bugfix_start new_branch=nil, options={:push=>false}
     generic_branch_start 'bugfix', "release/i#{current_release_branch_number}", new_branch, options
   end
 
-  def feature_start hotfix_branch=nil, options={:push=>false}
+  def feature_start new_branch=nil, options={:push=>false}
     generic_branch_start 'feature', 'master', new_branch, options
   end
 

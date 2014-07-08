@@ -10,6 +10,9 @@ gitscape   perform git-related promotions in a consistent manner.
 
 The following actions are supported.
 
+  bugfix_start <branch-name>      Creates a branch off master called feature/<branch-name>
+  feature_start <branch-name>     Creates a branch off the latest release branch called 
+                                  bugfix/<branch-name>
   hotfix_start <branch-name>      Creates a branch off live called hotfix/<branch-name>
   hotfix_finish [<branch-name>]   Merges the branch hotfix/<branch-name> into live,
                                   the current release branch and master. If <branch-name> is
@@ -69,12 +72,18 @@ if ARGV.size < 1
 else
   command_name = ARGV[0]
   case command_name
+    when "bugfix_start"
+      branch_name = ARGV[1]
+      Gitscape::Base.new.bugfix_start branch_name, options
+    when "feature_start"
+      branch_name = ARGV[1]
+      Gitscape::Base.new.feature_start branch_name, options
     when "hotfix_start"
-      hotfix_branch = ARGV[1]
-      Gitscape::Base.new.hotfix_start hotfix_branch, options
+      branch_name = ARGV[1]
+      Gitscape::Base.new.hotfix_start branch_name, options
     when "hotfix_finish"
-      hotfix_branch = ARGV[1]
-      Gitscape::Base.new.hotfix_finish hotfix_branch, options
+      branch_name = ARGV[1]
+      Gitscape::Base.new.hotfix_finish branch_name, options
     when "release_start"
       Gitscape::Base.new.release_start options
     when "release_finish"
