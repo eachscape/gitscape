@@ -273,7 +273,7 @@ class Gitscape::Base
     if critical_diff.length > 0
       puts "\n!!! This live merge has code that was not on the qa branch !!!\nDiff:"
       puts critical_diff
-      puts "!!! Run the command 'git reset --hard' to undo the merge, and raise this error with Phil and others involved to determine next step !!!"
+      puts "!!! Run the command 'git reset --hard' to undo the merge, and raise this error with QA and others involved to determine next step !!!"
       exit 3
     end
 
