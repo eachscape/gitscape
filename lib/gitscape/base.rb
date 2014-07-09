@@ -64,10 +64,6 @@ class Gitscape::Base
     release_branch_regex = /release\/i(\d+)$/
 
     candidates = unmerged_into_live_branch_names.select{ |b| release_branch_regex.match b}.map{|b| b.scan(release_branch_regex).flatten[0].to_i}.sort
-    if candidates.empty?
-      puts "*** There is no current release branch: exiting. ***"
-      exit 1
-    end
     candidates.last
   end
 
@@ -173,7 +169,11 @@ class Gitscape::Base
     # Collect the set of branches we'd like to merge the hotfix into
     merge_branches = ["master"]
     if %w{bugfix hotfix}.include?(branch_type)
-      merge_branches << current_release_branch_name if [:qa, :live].include?(options[:env_depth])
+      if current_release_branch_name.nil?
+        puts "!!! There is no current release branch: the command will bypass the release and qa branches"
+      else
+        merge_branches << current_release_branch_name if [:qa, :live].include?(options[:env_depth])
+      end
     end
     if %w{hotfix}.include?(branch_type)
       merge_branches << "live" if options[:env_depth] == :live
