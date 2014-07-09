@@ -64,7 +64,10 @@ class Gitscape::Base
     release_branch_regex = /release\/i(\d+)$/
 
     candidates = unmerged_into_live_branch_names.select{ |b| release_branch_regex.match b}.map{|b| b.scan(release_branch_regex).flatten[0].to_i}.sort
-    raise "*** There is no current release branch: unable to continue. ***" if candidates.empty?
+    if candidates.empty?
+      puts "*** There is no current release branch: exiting. ***"
+      exit 1
+    end
     candidates.last
   end
 
