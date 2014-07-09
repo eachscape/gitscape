@@ -97,7 +97,7 @@ class Gitscape::Base
     end
 
     puts `git checkout #{from_branch}`
-    puts `git pull origin`
+    puts `git pull origin #{from_branch}`
 
     new_branch = "#{branch_type}/#{new_branch}"
     puts "=== Creating #{branch_type} branch '#{new_branch}' ==="
