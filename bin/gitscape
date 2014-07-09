@@ -72,18 +72,12 @@ if ARGV.size < 1
 else
   command_name = ARGV[0]
   case command_name
-    when "bugfix_start"
+    when "bugfix_start", "feature_start", "hotfix_start"
       branch_name = ARGV[1]
-      Gitscape::Base.new.bugfix_start branch_name, options
-    when "feature_start"
+      Gitscape::Base.new.send command_name, branch_name, options
+    when "bugfix_finish", "feature_finish", "hotfix_finish"
       branch_name = ARGV[1]
-      Gitscape::Base.new.feature_start branch_name, options
-    when "hotfix_start"
-      branch_name = ARGV[1]
-      Gitscape::Base.new.hotfix_start branch_name, options
-    when "hotfix_finish"
-      branch_name = ARGV[1]
-      Gitscape::Base.new.hotfix_finish branch_name, options
+      Gitscape::Base.new.send comamnd_name, branch_name, options
     when "release_start"
       Gitscape::Base.new.release_start options
     when "release_finish"

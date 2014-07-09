@@ -118,35 +118,61 @@ class Gitscape::Base
     generic_branch_start 'feature', 'master', new_branch, options
   end
 
-  def hotfix_finish hotfix_branch=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+  def hotfix_finish branch_name=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+    generic_branch_finish 'hotfix', branch_name, options
+  end
+
+  def bugfix_finish branch_name=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+    generic_branch_finish 'bugfix', branch_name, options
+  end
+
+  def feature_finish branch_name=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+    generic_branch_finish 'feature', branch_name, options
+  end
+
+  def generic_branch_finish branch_type, source_name, options
     # option defaults
     options[:env_depth]   = :staging  if options[:env_depth].nil?
     options[:push]        = true      if options[:push].nil?
     options[:update_env]  = false     if options[:update_env].nil?
 
+    if (options[:env_depth] == :qa) && branch_type == 'feature'
+      puts "*** --qa may not be used with feature branches"
+      exit 1
+    end
+    if (options[:env_depth] == :live) && branch_type != 'hotfix'
+      puts "*** --live may only be used with hotfix branches"
+      exit 1
+    end
+
+
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
 
-    hotfix_branch = "hotfix/#{hotfix_branch}"
+    source_branch = "#{branch_type}/#{source_branch}"
     
     previous_branch = current_branch_name
-    if previous_branch.to_s.start_with? "hotfix/"
-      hotfix_branch = previous_branch
+    if previous_branch.to_s.start_with? "#{branch_type}/"
+      source_branch = previous_branch
     end
 
-    if hotfix_branch.to_s.empty?
-      puts "!!! Not currently on a hotfix branch, and no branch name was provided as an argument !!!"
-      puts finish_usage_string('hotfix')
+    if source_branch.to_s.empty?
+      puts "!!! Not currently on a #{branch_type} branch, and no branch name was provided as an argument !!!"
+      puts finish_usage_string(branch_type)
       exit 1
     end
 
     # Collect the set of branches we'd like to merge the hotfix into
     merge_branches = ["master"]
-    merge_branches << current_release_branch_name if [:qa, :live].include?(options[:env_depth])
-    merge_branches << "live" if options[:env_depth] == :live
+    if %w{bugfix hotfix}.include?(branch_type)
+      merge_branches << current_release_branch_name if [:qa, :live].include?(options[:env_depth])
+    end
+    if %w{hotfix}.include?(branch_type)
+      merge_branches << "live" if options[:env_depth] == :live
+    end
 
-    # Merge the hotfix into merge_branches
-    puts "=== Merging hotfix into branches #{merge_branches} ==="
+    # Merge the source branch into merge_branches
+    puts "=== Merging #{branch_type} into branches #{merge_branches} ==="
     for branch in merge_branches
 
       # Calculate merge_options
@@ -156,7 +182,7 @@ class Gitscape::Base
       # Attempt merge
       puts `git checkout #{branch}`
       puts `git pull`
-      puts `git merge #{merge_options} #{hotfix_branch}`
+      puts `git merge #{merge_options} #{source_branch}`
       
       # Bail on failures
       exit 1 if !$?.success?
@@ -167,7 +193,7 @@ class Gitscape::Base
       
       # If we just merged the live branch, tag this revision, and push that tag to origin
       if branch == "live"
-        puts `git tag live/i#{live_iteration}/#{hotfix_branch}`
+        puts `git tag live/i#{live_iteration}/#{source_branch}`
         puts `git push --tags`
       end
 
