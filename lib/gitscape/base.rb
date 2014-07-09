@@ -96,7 +96,7 @@ class Gitscape::Base
       raise "*** Improper Usage ***\nExpected Usage: #{branch_type}_start <#{branch_type}_name> [--[no-]push]"
     end
 
-    puts `git checkout live`
+    puts `git checkout #{from_branch}`
     puts `git pull origin`
 
     new_branch = "#{branch_type}/#{new_branch}"
