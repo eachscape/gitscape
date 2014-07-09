@@ -42,8 +42,15 @@ class Gitscape::Base
     working_copy_clean
   end
 
+  # Assume the highest branch already merged into live of the form 
+  # release/i[\d]+ is the live branch
   def live_iteration
-    toRet = `git branch -a --merged origin/live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
+    live_iteration_tag_regex = /^live\/i(\d+)/
+    toRet = `git tag`.split("\n").select { |tag| live_iteration_tag_regex.match tag }.map { |tag| tag.scan(live_iteration_tag_regex).flatten[0].to_i }.sort.last
+    # A bit of a chicken-and-egg problem. You might not have any tags for live, so look for something else...
+    if toRet.nil?
+      toRet = `git branch -a --merged origin/live`.split("\n").select{|b| /release\/i(\d+)$/.match b}.map{|b| b.scan(/release\/i(\d+)$/).flatten[0].to_i}.sort.last
+    end
     toRet
   end
 
@@ -57,6 +64,10 @@ class Gitscape::Base
     release_branch_regex = /release\/i(\d+)$/
 
     candidates = unmerged_into_live_branch_names.select{ |b| release_branch_regex.match b}.map{|b| b.scan(release_branch_regex).flatten[0].to_i}.sort
+    if candidates.empty?
+      puts "*** There is no current release branch: exiting. ***"
+      exit 1
+    end
     candidates.last
   end
 
@@ -78,61 +89,98 @@ class Gitscape::Base
     has_conflicts
   end
 
-  def hotfix_start hotfix_branch=nil, options={:push=>false}
+  def generic_branch_start branch_type, from_branch, new_branch, options
     # option defaults
     options[:push] = false if options[:push].nil?
     
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
     
-    puts `git checkout live`
-    puts `git pull origin`
-
-    if hotfix_branch.to_s.length == 0
-      exception_message = "*** Improper Usage ***\nExpected Usage: hotfix_start <hotfix_name> [--[no-]push]"
-      raise exception_message
+    if from_branch.nil?
+      raise "*** check that there is currently an active release branch ***"
     end
 
-    hotfix_branch = "hotfix/#{hotfix_branch}"
-    puts "=== Creating hotfix branch '#{hotfix_branch}' ==="
+    if new_branch.to_s.length == 0
+      raise "*** Improper Usage ***\nExpected Usage: #{branch_type}_start <#{branch_type}_name> [--[no-]push]"
+    end
 
-    puts `git checkout -b #{hotfix_branch}`
-    puts `git push origin #{hotfix_branch}` if options[:push]
+    puts `git checkout #{from_branch}`
+    puts `git pull origin #{from_branch}`
+
+    new_branch = "#{branch_type}/#{new_branch}"
+    puts "=== Creating #{branch_type} branch '#{new_branch}' ==="
+
+    puts `git checkout -b #{new_branch}`
+    puts `git push origin #{new_branch}` if options[:push]
   end
 
-  def hotfix_finish hotfix_branch=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+  def hotfix_start new_branch=nil, options={:push=>false}
+    generic_branch_start 'hotfix', 'live', new_branch, options
+  end
+
+  def bugfix_start new_branch=nil, options={:push=>false}
+    generic_branch_start 'bugfix', current_release_branch_name, new_branch, options
+  end
+
+  def feature_start new_branch=nil, options={:push=>false}
+    generic_branch_start 'feature', 'master', new_branch, options
+  end
+
+  def hotfix_finish branch_name=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+    generic_branch_finish 'hotfix', branch_name, options
+  end
+
+  def bugfix_finish branch_name=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+    generic_branch_finish 'bugfix', branch_name, options
+  end
+
+  def feature_finish branch_name=nil, options={:env_depth=>:staging, :push=>true, :update_env=>false}
+    generic_branch_finish 'feature', branch_name, options
+  end
+
+  def generic_branch_finish branch_type, source_name, options
     # option defaults
     options[:env_depth]   = :staging  if options[:env_depth].nil?
     options[:push]        = true      if options[:push].nil?
     options[:update_env]  = false     if options[:update_env].nil?
 
+    if (options[:env_depth] == :qa) && branch_type == 'feature'
+      puts "*** --qa may not be used with feature branches"
+      exit 1
+    end
+    if (options[:env_depth] == :live) && branch_type != 'hotfix'
+      puts "*** --live may only be used with hotfix branches"
+      exit 1
+    end
+
+
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
 
-    usage_string = "expected usage: hotfix_finish [<hotfix_branch>]
-    hotfix_branch: the name of the hotfix branch to finish.
-      if ommitted, you must currently be on a hotfix branch"
-
-    hotfix_branch = "hotfix/#{hotfix_branch}"
+    source_branch = "#{branch_type}/#{source_branch}"
     
     previous_branch = current_branch_name
-    if previous_branch.to_s.start_with? "hotfix/"
-      hotfix_branch = previous_branch
+    if previous_branch.to_s.start_with? "#{branch_type}/"
+      source_branch = previous_branch
     end
 
-    if hotfix_branch.to_s.empty?
-      puts "!!! Not currently on a hotfix branch, and no branch name was provided as an argument !!!"
-      puts usage_string
+    if source_branch.to_s.empty?
+      puts "!!! Not currently on a #{branch_type} branch, and no branch name was provided as an argument !!!"
+      puts finish_usage_string(branch_type)
       exit 1
     end
 
     # Collect the set of branches we'd like to merge the hotfix into
     merge_branches = ["master"]
-    merge_branches << current_release_branch_name if [:qa, :live].include?(options[:env_depth])
-    merge_branches << "live" if options[:env_depth] == :live
+    if %w{bugfix hotfix}.include?(branch_type)
+      merge_branches << current_release_branch_name if [:qa, :live].include?(options[:env_depth])
+    end
+    if %w{hotfix}.include?(branch_type)
+      merge_branches << "live" if options[:env_depth] == :live
+    end
 
-    # Merge the hotfix into merge_branches
-    puts "=== Merging hotfix into branches #{merge_branches} ==="
+    # Merge the source branch into merge_branches
+    puts "=== Merging #{branch_type} into branches #{merge_branches} ==="
     for branch in merge_branches
 
       # Calculate merge_options
@@ -142,7 +190,7 @@ class Gitscape::Base
       # Attempt merge
       puts `git checkout #{branch}`
       puts `git pull`
-      puts `git merge #{merge_options} #{hotfix_branch}`
+      puts `git merge #{merge_options} #{source_branch}`
       
       # Bail on failures
       exit 1 if !$?.success?
@@ -153,7 +201,7 @@ class Gitscape::Base
       
       # If we just merged the live branch, tag this revision, and push that tag to origin
       if branch == "live"
-        puts `git tag live/i#{live_iteration}/#{hotfix_branch}`
+        puts `git tag live/i#{live_iteration}/#{source_branch}`
         puts `git push --tags`
       end
 
@@ -255,7 +303,7 @@ class Gitscape::Base
     if !$?.success? then exit 4 end
     if git_has_conflicts then
       puts "Merge conflicts when pulling #{release_branch} into live"
-      puts "Please bother Xavier if you see this message :)"
+      puts "Please report a problem if you see this message :)"
       exit 2
     end
 
@@ -264,7 +312,7 @@ class Gitscape::Base
     if critical_diff.length > 0
       puts "\n!!! This live merge has code that was not on the qa branch !!!\nDiff:"
       puts critical_diff
-      puts "!!! Run the command 'git reset --hard' to undo the merge, and raise this error with Phil and others involved to determine next step !!!"
+      puts "!!! Run the command 'git reset --hard' to undo the merge, and raise this error with QA and others involved to determine next step !!!"
       exit 3
     end
 
@@ -280,7 +328,7 @@ class Gitscape::Base
     if !$?.success? then exit 4 end
     if git_has_conflicts then
       puts "Merge conflicts when pulling #{release_branch} into master"
-      puts "Please bother Xavier if you see this message :)"
+      puts "Please report a problem if you see this message :)"
       exit 2
     end
 
@@ -355,5 +403,10 @@ class Gitscape::Base
     true # If you get all the way here, all 4 positions match precisely
   end
 
+  def finish_usage_string(branch_type)
+    "expected usage: #{branch_type}_finish [<#{branch_type}_branch>]
+    #{branch_type}_branch: the name of the #{branch_type} branch to finish.
+      if omitted, you must currently be on a #{branch_type} branch"
+  end
 end
 

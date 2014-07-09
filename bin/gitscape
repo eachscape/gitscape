@@ -10,10 +10,32 @@ gitscape   perform git-related promotions in a consistent manner.
 
 The following actions are supported.
 
+  bugfix_start <branch-name>      Creates a branch off master called feature/<branch-name>
+  feature_start <branch-name>     Creates a branch off the latest release branch called 
+                                  bugfix/<branch-name>
   hotfix_start <branch-name>      Creates a branch off live called hotfix/<branch-name>
-  hotfix_finish [<branch-name>]   Merges the branch hotfix/<branch-name> into live,
-                                  the current release branch and master. If <branch-name> is
-                                  omitted and you are already on a hotfix branch, it is used.
+  feature_finish [<branch-name>]  Merges the branch feature/<branch-name> into the master
+                                  branch. 
+                                  When -u is specified, the master branch is copied to its
+                                  corresponding tracking branch (staging).
+                                  If <branch-name> is omitted and you are already on a
+                                  feature branch, it is used.
+  bugfix_finish [<branch-name>]   Merges the branch bugfix/<branch-name> into master and
+                                  optionally into the current release branch (when 
+                                  --qa is specified).
+                                  When -u is specified, any updated branch is copied to its
+                                  corresponding tracking branch (master to staging, the 
+                                  current release branch to qa).
+                                  If <branch-name> is omitted and you are already on a
+                                  bugfix branch, it is used.
+  hotfix_finish [<branch-name>]   Merges the branch hotfix/<branch-name> into master, 
+                                  optionally into the current branch (when --qa or --live is
+                                  specified) and to the live branch (when --live is specified).
+                                  When -u is specified, any updated branch is copied to its
+                                  corresponding tracking branch (master to staging, the 
+                                  current release branch to qa).
+                                  If <branch-name> is omitted and you are already on a
+                                  hotfix branch, it is used.
   release_start                   Branches master, incrementing the release number to create
                                   a new release branch, release/i<version+1>. The release
                                   branch is forced to the qa branch.
@@ -69,12 +91,12 @@ if ARGV.size < 1
 else
   command_name = ARGV[0]
   case command_name
-    when "hotfix_start"
-      hotfix_branch = ARGV[1]
-      Gitscape::Base.new.hotfix_start hotfix_branch, options
-    when "hotfix_finish"
-      hotfix_branch = ARGV[1]
-      Gitscape::Base.new.hotfix_finish hotfix_branch, options
+    when "bugfix_start", "feature_start", "hotfix_start"
+      branch_name = ARGV[1]
+      Gitscape::Base.new.send command_name, branch_name, options
+    when "bugfix_finish", "feature_finish", "hotfix_finish"
+      branch_name = ARGV[1]
+      Gitscape::Base.new.send command_name, branch_name, options
     when "release_start"
       Gitscape::Base.new.release_start options
     when "release_finish"
