@@ -96,7 +96,7 @@ else
       Gitscape::Base.new.send command_name, branch_name, options
     when "bugfix_finish", "feature_finish", "hotfix_finish"
       branch_name = ARGV[1]
-      Gitscape::Base.new.send comamnd_name, branch_name, options
+      Gitscape::Base.new.send command_name, branch_name, options
     when "release_start"
       Gitscape::Base.new.release_start options
     when "release_finish"
