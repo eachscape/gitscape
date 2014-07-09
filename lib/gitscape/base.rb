@@ -93,6 +93,10 @@ class Gitscape::Base
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
     
+    if from_branch.nil?
+      raise "*** check that there is currently an active release branch ***"
+    end
+
     if new_branch.to_s.length == 0
       raise "*** Improper Usage ***\nExpected Usage: #{branch_type}_start <#{branch_type}_name> [--[no-]push]"
     end
@@ -112,7 +116,7 @@ class Gitscape::Base
   end
 
   def bugfix_start new_branch=nil, options={:push=>false}
-    generic_branch_start 'bugfix', "release/i#{current_release_branch_number}", new_branch, options
+    generic_branch_start 'bugfix', current_release_branch_name, new_branch, options
   end
 
   def feature_start new_branch=nil, options={:push=>false}
