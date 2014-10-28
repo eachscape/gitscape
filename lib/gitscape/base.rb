@@ -155,7 +155,7 @@ class Gitscape::Base
     exit 1 unless git_working_copy_is_clean
 
     source_branch = "#{branch_type}/#{source_branch}"
-    
+    , label_method: 'name', value_method: 'formatted_offset'
     previous_branch = current_branch_name
     if previous_branch.to_s.start_with? "#{branch_type}/"
       source_branch = previous_branch
@@ -384,7 +384,7 @@ class Gitscape::Base
 
   # Get the system's current git version
   def git_version
-    @git_version ||= `git --version`.strip.split(" ").last
+    @git_version ||= `git --version`.match(/\d+(?:\.\d+)+/).to_s
   end
 
   # Check if the system's git version is at least as recent as the version specified
@@ -396,11 +396,14 @@ class Gitscape::Base
     min_version = split_version(min_version)
 
     raise "Git version string must have 4 parts" if min_version.size != 4
-
     4.times do |i|
+      if local_version[i].nil?
+        return false
+      end
       next if local_version[i] == min_version[i]
       return local_version[i] > min_version[i]
     end
+
     true # If you get all the way here, all 4 positions match precisely
   end
 
