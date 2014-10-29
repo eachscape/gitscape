@@ -155,7 +155,7 @@ class Gitscape::Base
     exit 1 unless git_working_copy_is_clean
 
     source_branch = "#{branch_type}/#{source_branch}"
-    
+
     previous_branch = current_branch_name
     if previous_branch.to_s.start_with? "#{branch_type}/"
       source_branch = previous_branch
