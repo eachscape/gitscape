@@ -1,6 +1,3 @@
-require "git"
-
-
 class Gitscape::Base
 
   def initialize
