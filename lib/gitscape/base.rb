@@ -32,7 +32,7 @@ class Gitscape::Base
 
     # Check if the working copy is clean, if not, exit
     
-    changes = `git status -uno --ignore-submodules=all --porcelain`
+    changes = `git -c color.ui=always status -uno --ignore-submodules=all --porcelain`
     working_copy_clean = changes.length == 0
     if !working_copy_clean && puts_changes
       puts "*** Your working copy is not clean, either commit, stash, or reset your changes then try again. ***"
@@ -96,14 +96,14 @@ class Gitscape::Base
       raise "*** Improper Usage ***\nExpected Usage: #{branch_type}_start <#{branch_type}_name> [--[no-]push]"
     end
 
-    puts `git checkout #{from_branch}`
-    puts `git pull origin #{from_branch}`
+    puts `git -c color.ui=always checkout #{from_branch}`
+    puts `git -c color.ui=always pull origin #{from_branch}`
 
     new_branch = "#{branch_type}/#{new_branch}"
     puts "=== Creating #{branch_type} branch '#{new_branch}' ==="
 
-    puts `git checkout -b #{new_branch}`
-    puts `git push origin #{new_branch}` if options[:push]
+    puts `git -c color.ui=always checkout -b #{new_branch}`
+    puts `git -c color.ui=always push origin #{new_branch}` if options[:push]
   end
 
   def hotfix_start new_branch=nil, options={:push=>false}
@@ -189,27 +189,27 @@ class Gitscape::Base
       merge_options += " --log" if branch == "master"
 
       # Attempt merge
-      puts `git checkout #{branch}`
-      puts `git pull`
-      puts `git merge #{merge_options} #{source_branch}`
+      puts `git -c color.ui=always checkout #{branch}`
+      puts `git -c color.ui=always pull`
+      puts `git -c color.ui=always merge #{merge_options} #{source_branch}`
       
       # Bail on failures
       exit 1 if !$?.success?
       raise "Merge failure(s) on #{branch}.\nResolve conflicts, and run the script again." if git_has_conflicts
       
-      puts `git push origin #{branch}` if options[:push]
-      puts `git push origin #{branch}:#{@env_branch_by_dev_branch[branch]}` if options[:update_env]
+      puts `git -c color.ui=always push origin #{branch}` if options[:push]
+      puts `git -c color.ui=always push origin #{branch}:#{@env_branch_by_dev_branch[branch]}` if options[:update_env]
       
       # If we just merged the live branch, tag this revision, and push that tag to origin
       if branch == "live"
-        puts `git tag live/i#{live_iteration}/#{source_branch}`
-        puts `git push --tags`
+        puts `git -c color.ui=always tag live/i#{live_iteration}/#{source_branch}`
+        puts `git -c color.ui=always push --tags`
       end
 
     end
 
     # Checkout previous branch for user convenience
-    `git checkout #{previous_branch}`
+    `git -c color.ui=always checkout #{previous_branch}`
   end
 
   def release_start options={:push=>true, :update_env=>true}
@@ -218,8 +218,8 @@ class Gitscape::Base
     options[:update_env]  = true  if options[:update_env].nil?
     
     # Switch to master branch
-    puts `git checkout master`
-    puts `git pull origin master`
+    puts `git -c color.ui=always checkout master`
+    puts `git -c color.ui=always pull origin master`
 
     # Check that the working copy is clean
     exit 1 unless git_working_copy_is_clean
@@ -228,7 +228,7 @@ class Gitscape::Base
     release_branch_name = "release/i#{new_version_number}"
 
     # Cut the branch
-    puts `git checkout -b "#{release_branch_name}" master`
+    puts `git -c color.ui=always checkout -b "#{release_branch_name}" master`
     exit 1 unless $?.exitstatus == 0
 
     # Bump the version number
@@ -236,18 +236,18 @@ class Gitscape::Base
     exit 1 unless $?.exitstatus == 0
 
     # Commit the bump
-    puts `git commit -a -m "Begin i#{new_version_number} release candidate"`
+    puts `git -c color.ui=always commit -a -m "Begin i#{new_version_number} release candidate"`
     exit 1 unless $?.exitstatus == 0
     
     # Push to origin
     if options[:push]
-      puts `git push origin -u "#{release_branch_name}"`
+      puts `git -c color.ui=always push origin -u "#{release_branch_name}"`
       exit 1 unless $?.exitstatus == 0
     end
 
     # Update qa to the new commit
     if options[:update_env]
-      puts `git push origin "#{release_branch_name}:qa"`
+      puts `git -c color.ui=always push origin "#{release_branch_name}:qa"`
       exit 1 unless $?.exitstatus == 0
     end
   end
@@ -261,7 +261,7 @@ class Gitscape::Base
     exit 1 unless git_working_copy_is_clean
 
     # Do a git fetch to ensure everything all refs are sync with origin
-    puts `git fetch`
+    puts `git -c color.ui=always fetch`
 
     # Get the right release_branch_name to merge
     current_version_number = live_iteration
@@ -273,7 +273,7 @@ class Gitscape::Base
 
     # Get branch information for checks
     branch_keys = ["name", "revision", "message"]
-    branch_values = `git branch -av`.scan(/^[ \*]*([^ \*]+) +([^ ]+) +(.*)$/)
+    branch_values = `git -c color.ui=always branch -av`.scan(/^[ \*]*([^ \*]+) +([^ ]+) +(.*)$/)
     branches = branch_values.map {|components| Hash[ branch_keys.zip components ] }
     branch_revisions = Hash[ branches.map {|branch| [branch["name"], branch["revision"]] } ]
 
@@ -288,17 +288,17 @@ class Gitscape::Base
     end
 
     # Checkout and pull release_branch
-    puts `git checkout #{release_branch}`
-    puts `git pull origin #{release_branch}`
+    puts `git -c color.ui=always checkout #{release_branch}`
+    puts `git -c color.ui=always pull origin #{release_branch}`
 
     # Checkout and pull live
-    puts `git checkout live`
-    puts `git pull origin live`
+    puts `git -c color.ui=always checkout live`
+    puts `git -c color.ui=always pull origin live`
 
     merge_options = "--no-ff -s recursive -Xignore-space-change"
 
     # Merge the release branch into live
-    puts `git merge #{merge_options} #{release_branch}`
+    puts `git -c color.ui=always merge #{merge_options} #{release_branch}`
 
     # Error and conflict checking
     if !$?.success? then exit 4 end
@@ -309,7 +309,7 @@ class Gitscape::Base
     end
 
     # Ensure there is zero diff between what was tested on origin/qa and the new live
-    critical_diff = `git diff live origin/qa`
+    critical_diff = `git -c color.ui=always diff live origin/qa`
     if critical_diff.length > 0
       puts "\n!!! This live merge has code that was not on the qa branch !!!\nDiff:"
       puts critical_diff
@@ -318,12 +318,12 @@ class Gitscape::Base
     end
 
     # Record the revision of live used for the release tag
-    live_release_revision = `git log -n1 --oneline`.scan(/(^[^ ]+) .*$/).flatten[0]
+    live_release_revision = `git -c color.ui=always log -n1 --oneline`.scan(/(^[^ ]+) .*$/).flatten[0]
 
     # Merge the release branch into master 
-    puts `git checkout master`
-    puts `git pull origin master`
-    puts `git merge #{merge_options} #{release_branch}`
+    puts `git -c color.ui=always checkout master`
+    puts `git -c color.ui=always pull origin master`
+    puts `git -c color.ui=always merge #{merge_options} #{release_branch}`
 
     # Error and conflict checking
     if !$?.success? then exit 4 end
@@ -334,21 +334,21 @@ class Gitscape::Base
     end
 
     # Tag the state of live for both release and rollback
-    puts `git tag rollback-to/i#{current_version_number} live~`
+    puts `git -c color.ui=always tag rollback-to/i#{current_version_number} live~`
     if !$?.success? then
       puts "=== WARNING: Failed to create rollback-to/i#{current_version_number} tag"
     end
 
-    `git tag live/i#{new_version_number}/release #{live_release_revision}`
+    `git -c color.ui=always tag live/i#{new_version_number}/release #{live_release_revision}`
     if !$?.success? then
       puts "=== WARNING: Failed to create live/i#{new_version_number}/release"
-      puts `git tag -d rollback-to/i#{current_version_number}`
+      puts `git -c color.ui=always tag -d rollback-to/i#{current_version_number}`
       exit 4
     end
     
     if options[:push] && options[:update_env]
-      puts `git push origin live --tags`
-      puts `git push origin master`
+      puts `git -c color.ui=always push origin live --tags`
+      puts `git -c color.ui=always push origin master`
     end
   end
   
@@ -357,24 +357,24 @@ class Gitscape::Base
     options[:push] = false if options[:push].nil?
     
     # Do a fetch in order to ensure we have all the latest tags
-    `git fetch`
+    `git -c color.ui=always fetch`
     
     # Select which tags to keep.
     # We currently keep tags which fulfill any of the following
     # 1. starts with 'service/'
     # 2. starts with 'rollback-to/' or 'live/', and has an iteration number >= the live_iteration number - 3
-    tags = `git tag`.split "\n" 
+    tags = `git -c color.ui=always tag`.split "\n" 
     tags_to_delete = tags.select { |tag| !(!/^service\//.match(tag).nil? || /^(?:live|rollback-to)\/i(\d+)/.match(tag).to_a[1].to_i >= live_iteration - 3) }
     
     puts "Deleting the following tags.\nThese changes #{options[:push] ? "will" : "will not"} be pushed to origin.\n"
     
-    tags_to_delete.each { |tag| puts `git tag -d #{tag}` }
-    tags_to_delete.each { |tag| puts `git push origin :refs/tags/#{tag}` } if options[:push]
+    tags_to_delete.each { |tag| puts `git -c color.ui=always tag -d #{tag}` }
+    tags_to_delete.each { |tag| puts `git -c color.ui=always push origin :refs/tags/#{tag}` } if options[:push]
   end
 
   # Returns true if the supplied Git commit hash or reference exists
   def self.commit_exists?(commit_id)
-    `git rev-parse #{commit_id}`
+    `git -c color.ui=always rev-parse #{commit_id}`
     if $? == 0
       true
     else

@@ -13,3 +13,5 @@ To test, you must build and install the new version locally
 Note that the "bundle" command is configured to install the gem from the local copy.
 
 You must use "bundle exec gitscape" to test locally.
+
+This requires git >= 2.4.6. Verify with `git --version`
