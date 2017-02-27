@@ -44,6 +44,8 @@ The following actions are supported.
                                   release branch into live and master. Tags are created that
                                   facilitate a rollback.
                                   ** These actions update the origin server. **
+  incoming                        See incoming commits that aren't in your working copy.
+  outgoing                        See outgoing commits before merging them.
 EOS
 
 # Parse option overrides.
@@ -103,6 +105,10 @@ else
       Gitscape::Base.new.release_finish options
     when "tag_cleanup"
       Gitscape::Base.new.tag_cleanup options
+    when "incoming"
+      Gitscape::Base.new.incoming
+    when "outgoing"
+      Gitscape::Base.new.outgoing
     else
       puts "Unknown command: #{command_name}"
   end
