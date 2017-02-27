@@ -13,9 +13,6 @@ Gem::Specification.new do |s|
   s.summary     = "Various Git utilities for workflows."
   s.description = "Provides a series of shell commands that allow you to control 3 timestreams of"
                   "git branches for development, testing and deployment environments."
-
-  s.add_dependency "git", "~> 1.2.5"
-
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
