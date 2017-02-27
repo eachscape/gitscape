@@ -372,6 +372,15 @@ class Gitscape::Base
     tags_to_delete.each { |tag| puts `git push origin :refs/tags/#{tag}` } if options[:push]
   end
 
+  #Source: http://stackoverflow.com/a/20471036/1904232
+  def incoming
+    puts `git fetch && git log ..origin/master --stat`
+  end
+
+  def outgoing
+    puts `git fetch && git log origin/master.. --stat`
+  end
+
   # Returns true if the supplied Git commit hash or reference exists
   def self.commit_exists?(commit_id)
     `git rev-parse #{commit_id}`
